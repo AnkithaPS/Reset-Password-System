@@ -1,0 +1,83 @@
+<div class="row mt-5 justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="card-title text-center mb-4">
+          <i class="bi bi-person-plus-fill text-primary"></i>
+          Create Account
+        </h2>
+
+        <% if (typeof error !== 'undefined') { %>
+        <div class="alert alert-danger" role="alert">
+          <i class="bi bi-exclamation-triangle-fill"></i> <%= error %>
+        </div>
+        <% } %> <% if (typeof success !== 'undefined') { %>
+        <div class="alert alert-success" role="alert">
+          <i class="bi bi-check-circle-fill"></i> <%= success %>
+        </div>
+        <% } %>
+
+        <form action="/register" method="POST">
+          <div class="mb-3">
+            <label for="email" class="form-label">Email address</label>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                value="<%= typeof email !== 'undefined' ? email : '' %>"
+                required
+              />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-lock"></i>
+              </span>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label"
+              >Confirm Password</label
+            >
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-lock-fill"></i>
+              </span>
+              <input
+                type="password"
+                class="form-control"
+                id="confirmPassword"
+                name="confirmPassword"
+                required
+              />
+            </div>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-person-plus"></i> Register
+            </button>
+          </div>
+        </form>
+        <div class="text-center mt-3">
+          <a href="/" class="text-decoration-none">
+            <i class="bi bi-arrow-left"></i> Back to Home
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
