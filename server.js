@@ -7,6 +7,7 @@ const expressLayout = require("express-ejs-layouts");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const session = require("express-session");
+const jwt = require("jsonwebtoken");
 const MongoStore = require("connect-mongo").default;
 const app = express();
 
@@ -148,6 +149,105 @@ app.post("/register", async (req, res) => {
   }
 });
 
+//forgot password page
+app.get("/forgot-password", async (req, res) => {
+  res.render("forgot-password");
+});
+
+//forgot password logic
+app.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.render("forgot-password", {
+        error: "No account found for this email",
+        email,
+      });
+    }
+    //generate reset token
+    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1hr",
+    });
+    //save token to user
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 3600000; //1hr
+    await user.save();
+    //generate reset url
+    const resetUrl = `http://${req.headers.host}/reset-password/${resetToken}`;
+    //send mail
+    const mailOptions = {
+      to: user.email,
+      subject: "Password reset",
+      html: `
+      <h2>Password reset request</h2>
+      <p>You requested password reset. Click below link to reset the password</p>
+      <a href="${resetUrl}">${resetUrl}</a>
+      <p>This link will expire in 1 hour</p>`,
+    };
+    await transporter.sendMail(mailOptions);
+    res.render("forgot-password", {
+      success: "Password reset email sent. Please check your inbox",
+    });
+  } catch (error) {
+    res.render("forgot-password", {
+      error: "Error processing request. Please try again",
+      email: req.body.email,
+    });
+  }
+});
+
+//reset password form page
+app.get("/reset-password/:token", async (req, res) => {
+  res.render("reset-password", { token: req.params.token });
+});
+
+//reset password logic
+app.post("/reset-password/:token", async (req, res) => {
+  try {
+    const { password, confirmPassword } = req.body;
+    const { token } = req.params;
+    if (password !== confirmPassword) {
+      return res.render("reset-password", {
+        token,
+        error: "Password do not match",
+      });
+    }
+
+    //decode token
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({
+      _id: decodedToken.id,
+      resetPasswordToken: token,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+    if (!user) {
+      return res.render("reset-password", {
+        token,
+        error: "Invalid or expired token. Please request new password reset",
+      });
+    }
+    //update new password
+    const newPassword = await bcrypt.hash(password, 10);
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+    res.render("reset-password", {
+      token,
+      success:
+        "Password has been reset successfully!. Please login with new password",
+    });
+  } catch (error) {
+    res.render(
+      "reset-password",
+      { token: req.params.token },
+      {
+        error: "Error resetting password. Please try again",
+      },
+    );
+  }
+});
 //dashboard page
 app.get("/dashboard", authenticate, async (req, res) => {
   try {
